@@ -1,0 +1,140 @@
+"""엔진별 preset 가중치 관리 (preset-only).
+
+custom `.pt` 업로드는 제거됐다 — `.pt`=pickle=코드실행 신뢰경계라, 인증 없는 업로드 +
+메인 프로세스 로드는 RCE 였다. 이제 ultralytics 가 자동 다운로드하는 preset 5종만
+허용(allowlist). 워커·class 메타 조회 모두 이 allowlist 를 통과한 이름만 로드한다.
+"""
+
+from __future__ import annotations
+
+from typing import Optional
+
+from app import config
+from app.inference import engines
+
+
+# 기존 benchmark 스크립트의 기본값은 YOLO26으로 유지한다. 실제 신뢰경계는
+# engines.is_preset()의 전 엔진 합집합이다.
+PRESET_MODELS: tuple[str, ...] = engines.ENGINES[engines.DEFAULT_ENGINE].presets
+
+# 허용된 YOLO26 detection preset은 모두 COCO 80-class 모델이다. 클래스 설정 UI가
+# 이름만 표시하려고 가중치 전체를 다운로드하지 않도록 메타데이터를 별도로 보관한다.
+COCO_CLASS_NAMES: tuple[str, ...] = (
+    "person",
+    "bicycle",
+    "car",
+    "motorcycle",
+    "airplane",
+    "bus",
+    "train",
+    "truck",
+    "boat",
+    "traffic light",
+    "fire hydrant",
+    "stop sign",
+    "parking meter",
+    "bench",
+    "bird",
+    "cat",
+    "dog",
+    "horse",
+    "sheep",
+    "cow",
+    "elephant",
+    "bear",
+    "zebra",
+    "giraffe",
+    "backpack",
+    "umbrella",
+    "handbag",
+    "tie",
+    "suitcase",
+    "frisbee",
+    "skis",
+    "snowboard",
+    "sports ball",
+    "kite",
+    "baseball bat",
+    "baseball glove",
+    "skateboard",
+    "surfboard",
+    "tennis racket",
+    "bottle",
+    "wine glass",
+    "cup",
+    "fork",
+    "knife",
+    "spoon",
+    "bowl",
+    "banana",
+    "apple",
+    "sandwich",
+    "orange",
+    "broccoli",
+    "carrot",
+    "hot dog",
+    "pizza",
+    "donut",
+    "cake",
+    "chair",
+    "couch",
+    "potted plant",
+    "bed",
+    "dining table",
+    "toilet",
+    "tv",
+    "laptop",
+    "mouse",
+    "remote",
+    "keyboard",
+    "cell phone",
+    "microwave",
+    "oven",
+    "toaster",
+    "sink",
+    "refrigerator",
+    "book",
+    "clock",
+    "vase",
+    "scissors",
+    "teddy bear",
+    "hair drier",
+    "toothbrush",
+)
+
+
+def is_preset(name: str) -> bool:
+    """name 이 허용된 preset 인지 (전 엔진 합집합 allowlist 게이트)."""
+    return engines.is_preset(name)
+
+
+def list_all_models(engine: Optional[str] = None) -> list[dict]:
+    """선택 엔진의 preset 목록. 미지정 시 기존 YOLO26 목록을 유지한다."""
+    engine_id = engine or engines.DEFAULT_ENGINE
+    spec = engines.ENGINES.get(engine_id)
+    if spec is None:
+        raise ValueError(f"알 수 없는 추론 엔진: {engine_id!r}")
+    return [
+        {"name": name, "type": "preset", "size_mb": None}
+        for name in spec.presets
+    ]
+
+
+def list_model_classes(name: str) -> list[dict]:
+    """preset 모델의 COCO 클래스 메타데이터를 가중치 로드 없이 반환한다."""
+    engine_id = engines.engine_of(name)
+    if engine_id is None:
+        raise ValueError(f"허용되지 않은 모델: {name!r} (preset 만 가능)")
+    if not engines.ENGINES[engine_id].closed_set_coco:
+        return []
+    return [
+        {"id": class_id, "name": class_name}
+        for class_id, class_name in enumerate(COCO_CLASS_NAMES)
+    ]
+
+
+def resolve_model_path(name: str) -> str:
+    """허용된 프리셋의 가중치 저장 경로를 반환한다."""
+    if not is_preset(name):
+        raise ValueError(f"허용되지 않은 모델: {name!r} (preset 만 가능)")
+    return str(config.YOLO_WEIGHTS_DIR / name)

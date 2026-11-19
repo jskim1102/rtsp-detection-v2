@@ -1,0 +1,2 @@
+# 처음 사용할 때 Ultralytics가 YOLO26(n/s/m/l/x), RT-DETR(l/x), YOLO-World v2(s/m/l/x)를, RF-DETR이 rf-detr-base.pth를 공식 배포처에서 가중치 폴더로 받습니다.
+# YOLO-World에서 프롬프트를 처음 적용할 때 CLIP ViT-B/32 텍스트 인코더를 자동으로 받아 캐시에 보관합니다.
