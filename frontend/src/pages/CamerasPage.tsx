@@ -384,7 +384,7 @@ export default function CamerasPage({ engine, spec }: Props) {
 
       <header className="page-head">
         <div>
-          <h1>RTSP Detection</h1>
+          <h1>RTSP Detection v2</h1>
           <p className="subtitle">카메라 관리 · YOLO 객체탐지</p>
         </div>
         <button

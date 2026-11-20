@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-# rtsp-detection backend — FastAPI + mediamtx control plane + YOLO 추론(별도 프로세스) + RTSP 캡처.
+# rtsp-detection-v2 backend — FastAPI + mediamtx control plane + YOLO 추론(별도 프로세스) + RTSP 캡처.
 # 베이스: python:3.11-slim (Debian slim), Linux 전용.
 # 의존성: pip + requirements.txt (torch+CUDA cu12 휠 포함 → 이미지 ~3GB, GPU/CPU 양용).
 
