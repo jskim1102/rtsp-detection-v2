@@ -64,10 +64,11 @@ export default function CameraFormModal({ open, editCam, onClose, onSave }: Prop
           <p className="hint">
             형식 — rtsp://[user:pass@]IP:PORT/PATH · 지원 코덱 H.264 / H.265
           </p>
+          {/* backend _guard_masked_credential_exfil 이 *** 인 채 주소를 바꾸면 400 으로 거부한다. */}
           {editCam && rtspUrl.includes(":***@") && (
             <p className="hint">
-              ⚠️ <code>***</code> = 기존 비밀번호 유지. 주소·포트·경로는 그대로 수정하면 반영됩니다.
-              비밀번호를 변경하려면 <code>***</code> 를 지우고 새 비밀번호를 입력하세요.
+              ⚠️ <code>***</code> = 기존 비밀번호 유지 — RTSP 주소를 바꾸지 않고 이름만 수정할 때만 유효합니다.
+              주소·포트·경로 또는 비밀번호를 변경하려면 <code>***</code> 를 지우고 실제 비밀번호를 다시 입력하세요.
             </p>
           )}
         </div>

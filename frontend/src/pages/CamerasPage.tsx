@@ -48,6 +48,9 @@ export default function CamerasPage({ engine, spec }: Props) {
   const [formOpen, setFormOpen] = useState(false);
   const [editCam, setEditCam] = useState<Cam | null>(null);
   const [error, setError] = useState("");
+  // 카메라별 remount epoch — RTSP 변경 편집 성공 시 bump(→ CameraGrid key 변경 → 셀 remount).
+  // 응답 rtsp_url 은 마스킹(:***@)이라 비번-only 변경을 서버 응답으론 못 잡으므로 이 신호를 쓴다.
+  const [playerEpoch, setPlayerEpoch] = useState<Record<number, number>>({});
   const [gpuUtilTargetPct, setGpuUtilTargetPct] = useState(
     DEFAULT_GPU_UTIL_TARGET_PCT
   );
@@ -325,12 +328,20 @@ export default function CamerasPage({ engine, spec }: Props) {
   // 등록/수정 — 성공 시 null, 실패 시 에러메시지 반환(모달이 표시 + 로딩상태 제어, #124).
   async function handleSave(name: string, rtspUrl: string): Promise<string | null> {
     if (editCam) {
+      // 사용자가 입력한 url 이 기존값(마스킹 :***@ 포함)과 다르면 스트림 변경(비번·주소 등).
+      // 이름만 바꾼 편집은 여기서 false → remount 하지 않는다(불필요한 WHEP 재연결/깜빡임 방지).
+      const urlChanged = rtspUrl !== editCam.rtsp_url;
       const resp = await fetch(`${apiBase()}/api/ipcams/${editCam.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, rtsp_url: rtspUrl }),
       });
       if (!resp.ok) return "카메라 수정에 실패했습니다.";
+      // RTSP 변경 성공 시에만 셀 remount 신호 bump(비번-only 편집도 새 자격증명으로 WHEP 재연결).
+      if (urlChanged) {
+        const id = editCam.id;
+        setPlayerEpoch((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
+      }
     } else {
       const resp = await fetch(`${apiBase()}/api/ipcams`, {
         method: "POST",
@@ -526,6 +537,7 @@ export default function CamerasPage({ engine, spec }: Props) {
           onDetFps={handleDetFps}
           inferenceActive={inferenceActive}
           settingsByCam={modelSettingsByCam}
+          epochs={playerEpoch}
         />
       </section>
 

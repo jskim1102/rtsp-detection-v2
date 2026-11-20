@@ -103,6 +103,15 @@ def setup_logging() -> logging.Logger:
         )
         logger.addHandler(handler)
 
+    # 추론 코드는 앱 로거 밖 이름으로 로그를 남긴다 — worker 등은 모듈 이름(app.*), 모델별 자식은 inference.worker.*
+    # 같은 수준 · 출력으로 켜야 그 INFO 가 보인다
+    for name in ("app", "inference"):
+        extra = logging.getLogger(name)
+        extra.setLevel(logger.level)
+        if not extra.handlers:
+            for h in logger.handlers:
+                extra.addHandler(h)
+
     return logger
 
 

@@ -6,6 +6,7 @@ config 는 import 시점에 env 를 읽으므로, env 를 세팅하고 importlib
 """
 
 import importlib
+import logging
 from pathlib import Path
 
 import pytest
@@ -73,3 +74,11 @@ def test_absolute_weights_directory_is_used_as_configured(monkeypatch, tmp_path)
 def test_weights_directory_only_accepts_preset_names(name):
     with pytest.raises(ValueError):
         resolve_model_path(name)
+
+
+def test_inference_logs_follow_app_logging(monkeypatch):
+    """추론 코드는 모듈 이름(app.*)과 inference.worker.* 로 로그를 남긴다 — 앱 로거만 켜면 그 INFO 가 조용히 사라진다."""
+    _reload_config(monkeypatch, LOG_LEVEL="INFO")
+    for name in ("app.inference.worker", "inference.worker.yolo26n.pt"):
+        assert logging.getLogger(name).isEnabledFor(logging.INFO)
+        assert logging.getLogger(name.split(".")[0]).handlers
